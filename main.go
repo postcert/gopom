@@ -17,7 +17,7 @@ func main() {
 	myWindow := myApp.NewWindow("Pomodoro Timer")
 
 	timerLabel := widget.NewLabel("25:00")
-	progress := widget.NewProgressBar()
+	progressBar := widget.NewProgressBar()
 	startButton := widget.NewButton("Start", nil)
 	stopButton := widget.NewButton("Stop", nil)
 	resetButton := widget.NewButton("Reset", nil)
@@ -28,7 +28,7 @@ func main() {
 	startButton.OnTapped = func() {
 		remaining := pomodoroDuration
 		timerLabel.SetText(formatDuration(remaining))
-		circularTimer.SetProgress(0)
+		progressBar.SetValue(0)
 
 		timer = time.NewTimer(pomodoroDuration)
 		ticker = time.NewTicker(time.Second)
@@ -39,11 +39,11 @@ func main() {
 				case <-ticker.C:
 					remaining -= time.Second
 					timerLabel.SetText(formatDuration(remaining))
-					progress := 1 - remaining.Seconds()/pomodoroDuration.Seconds()
-					circularTimer.SetProgress(progress)
+					progress := 1.0 - (remaining.Seconds() / pomodoroDuration.Seconds())
+					progressBar.SetValue(progress)
 				case <-timer.C:
 					timerLabel.SetText("Time's up!")
-					circularTimer.SetProgress(1)
+					progressBar.SetValue(1)
 					ticker.Stop()
 					return
 				}
@@ -68,11 +68,11 @@ func main() {
 			ticker.Stop()
 		}
 		timerLabel.SetText("25:00")
-		circularTimer.SetProgress(0)
+		progressBar.SetValue(0)
 	}
 
 	buttons := container.NewHBox(startButton, stopButton, resetButton)
-	content := container.NewVBox(timerLabel, circularTimer, buttons)
+	content := container.NewVBox(timerLabel, progressBar, buttons)
 
 	myWindow.SetContent(content)
 	myWindow.Resize(fyne.NewSize(300, 300))
