@@ -2,7 +2,12 @@ module github.com/postcert/gopom
 
 go 1.20
 
-require fyne.io/fyne/v2 v2.4.3
+require (
+	fyne.io/fyne/v2 v2.4.3
+	github.com/sanity-io/litter v1.5.5
+	github.com/sirupsen/logrus v1.9.3
+	golang.org/x/exp v0.0.0-20240119083558-1b970713d09a
+)
 
 require (
 	fyne.io/systray v1.10.1-0.20231115130155-104f5ef7839e // indirect
@@ -20,13 +25,11 @@ require (
 	github.com/gopherjs/gopherjs v1.17.2 // indirect
 	github.com/jsummers/gobmp v0.0.0-20151104160322-e2ba15ffa76e // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/sanity-io/litter v1.5.5 // indirect
 	github.com/srwiley/oksvg v0.0.0-20221011165216-be6e8873101c // indirect
 	github.com/srwiley/rasterx v0.0.0-20220730225603-2ab79fcdd4ef // indirect
 	github.com/stretchr/testify v1.8.4 // indirect
 	github.com/tevino/abool v1.2.0 // indirect
 	github.com/yuin/goldmark v1.5.5 // indirect
-	golang.org/x/exp v0.0.0-20240119083558-1b970713d09a // indirect
 	golang.org/x/image v0.11.0 // indirect
 	golang.org/x/mobile v0.0.0-20230531173138-3c911d8e3eda // indirect
 	golang.org/x/net v0.17.0 // indirect

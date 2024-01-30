@@ -4,18 +4,20 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
-	"github.com/sanity-io/litter"
+	log "github.com/sirupsen/logrus"
 )
+
+func init() {
+	log.SetLevel(log.DebugLevel)
+}
 
 func main() {
 	myApp := app.NewWithID("net.postcert.gopom")
 	myWindow := myApp.NewWindow("Pomodoro Timer")
 
 	pomoconfig := createPomoConfig(myApp)
-	litter.Dump(pomoconfig)
 
 	pomodoroTimer := createPomodoroTimer(pomoconfig)
-	litter.Dump(pomodoroTimer)
 
 	timerTab := container.NewTabItem("Timer", pomodoroTab(pomodoroTimer))
 	settingsTab := container.NewTabItem("Settings", settingsTab(pomoconfig))
