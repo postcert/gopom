@@ -34,7 +34,16 @@ func settingsTab(pomoConfig *PomoConfig) *fyne.Container {
 	timingConfigSelectionNewButton.OnTapped = func() {
 		newTimingConfigContainer.Show()
 	}
-	timingConfigSelectionContainer := container.NewBorder(nil, nil, nil, timingConfigSelectionNewButton, timingConfigSelection)
+	timingConfigSelectionDeleteButton := widget.NewButton("Delete", nil)
+	timingConfigSelectionDeleteButton.OnTapped = func() {
+		prevSelection := timingConfigSelection.Selected
+		timingConfigSelection.SetSelected(DefaultTimingConfigName)
+		delete(pomoConfig.TimingConfigs, prevSelection)
+		timingConfigSelection.SetOptions(maps.Keys(pomoConfig.TimingConfigs))
+		timingConfigSelection.Refresh()
+	}
+	timingConfigButtonsContainer := container.NewHBox(timingConfigSelectionNewButton, timingConfigSelectionDeleteButton)
+	timingConfigSelectionContainer := container.NewBorder(nil, nil, nil, timingConfigButtonsContainer, timingConfigSelection)
 
 	settingsForm := createSettingsForm(pomoConfig, DefaultTimingConfigName)
 

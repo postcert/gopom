@@ -2,10 +2,15 @@ package main
 
 import (
 	"fmt"
+	"slices"
+	"sort"
 	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/data/binding"
+	"golang.org/x/exp/maps"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type timingConfig struct {
@@ -60,6 +65,14 @@ type PomoConfig struct {
 func createPomoConfig(app fyne.App) *PomoConfig {
 	timingConfigs := make(map[string]timingConfig)
 	timingConfigNames := app.Preferences().StringListWithFallback(timingConfigKey, DefaultTimingConfigsNames)
+	log.Debug("createPomoConfig: timingConfigNames: ", timingConfigNames)
+
+	// If DefaultTimingConfigName is not in timingConfigNames, add it
+	if !slices.Contains(timingConfigNames, DefaultTimingConfigName) {
+		timingConfigNames = append(timingConfigNames, DefaultTimingConfigName)
+	}
+
+	sort.Strings(timingConfigNames)
 
 	for _, configName := range timingConfigNames {
 		timingConfigPref := app.Preferences().IntListWithFallback(configName, timingConfigDefaults)
@@ -100,6 +113,10 @@ func (config *PomoConfig) Save() {
 	for configName, timingConfig := range config.TimingConfigs {
 		config.fyneApp.Preferences().SetIntList(configName, timingConfig.intList())
 	}
+
+	timingConfigNames := maps.Keys(config.TimingConfigs)
+	log.Debug("PomoConfig.Save: timingConfigNames: ", timingConfigNames)
+	config.fyneApp.Preferences().SetStringList(timingConfigKey, timingConfigNames)
 }
 
 func (config *PomoConfig) NewTimingConfig(configName string) {
