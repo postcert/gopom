@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"slices"
 	"sort"
 	"time"
 
@@ -67,10 +66,14 @@ func createPomoConfig(app fyne.App) *PomoConfig {
 	timingConfigNames := app.Preferences().StringListWithFallback(timingConfigKey, DefaultTimingConfigsNames)
 	log.Debug("createPomoConfig: timingConfigNames: ", timingConfigNames)
 
-	// If DefaultTimingConfigName is not in timingConfigNames, add it
-	if !slices.Contains(timingConfigNames, DefaultTimingConfigName) {
+	if len(timingConfigNames) == 0 {
 		timingConfigNames = append(timingConfigNames, DefaultTimingConfigName)
 	}
+
+	// If DefaultTimingConfigName is not in timingConfigNames, add it
+	// if !slices.Contains(timingConfigNames, DefaultTimingConfigName) {
+	// 	timingConfigNames = append(timingConfigNames, DefaultTimingConfigName)
+	// }
 
 	sort.Strings(timingConfigNames)
 

@@ -4,7 +4,6 @@ go 1.20
 
 require (
 	fyne.io/fyne/v2 v2.4.3
-	github.com/sanity-io/litter v1.5.5
 	github.com/sirupsen/logrus v1.9.3
 	golang.org/x/exp v0.0.0-20240119083558-1b970713d09a
 )
