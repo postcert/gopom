@@ -36,13 +36,13 @@ func settingsTab(pomoConfig *PomoConfig) *fyne.Container {
 	}
 	timingConfigSelectionDeleteButton := widget.NewButton("Delete", nil)
 	timingConfigSelectionDeleteButton.OnTapped = func() {
-		// TODO: Possibly skip this if the default config is selected
-		// TODO: Have pomoConfig handle the deletion so it can also clear the related fyne preferences
 		prevSelection := timingConfigSelection.Selected
-		timingConfigSelection.SetSelected(DefaultTimingConfigName)
-		delete(pomoConfig.TimingConfigs, prevSelection)
-		timingConfigSelection.SetOptions(maps.Keys(pomoConfig.TimingConfigs))
-		timingConfigSelection.Refresh()
+		if prevSelection != DefaultTimingConfigName {
+			timingConfigSelection.SetSelected(DefaultTimingConfigName)
+			pomoConfig.DeleteTimingConfig(prevSelection)
+			timingConfigSelection.SetOptions(maps.Keys(pomoConfig.TimingConfigs))
+			timingConfigSelection.Refresh()
+		}
 	}
 	timingConfigButtonsContainer := container.NewHBox(timingConfigSelectionNewButton, timingConfigSelectionDeleteButton)
 	timingConfigSelectionContainer := container.NewBorder(nil, nil, nil, timingConfigButtonsContainer, timingConfigSelection)

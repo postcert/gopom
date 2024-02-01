@@ -9,6 +9,7 @@ import (
 	"fyne.io/fyne/v2/data/binding"
 	"golang.org/x/exp/maps"
 
+	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -39,11 +40,25 @@ func newDefaultTimingConfig() timingConfig {
 
 func (config timingConfig) intList() []int {
 	intList := make([]int, PrefMappingCount)
-	// TODO: Handle binding.get() errors
-	workDuration, _ := config.WorkDuration.Get()
-	breakDuration, _ := config.BreakDuration.Get()
-	workIterations, _ := config.WorkIterations.Get()
-	autostartNext, _ := config.AutoStartNext.Get()
+	workDuration, error := config.WorkDuration.Get()
+	if error != nil {
+		log.WithError(error).Errorf("Failed to query bound workDuration")
+	}
+
+	breakDuration, error := config.BreakDuration.Get()
+	if error != nil {
+		log.WithError(error).Errorf("Failed to query bound breakDuration")
+	}
+
+	workIterations, error := config.WorkIterations.Get()
+	if error != nil {
+		log.WithError(error).Errorf("Failed to query bound workIterations")
+	}
+
+	autostartNext, error := config.AutoStartNext.Get()
+	if error != nil {
+		log.WithError(error).Errorf("Failed to query bound autostartNext value")
+	}
 
 	intList[WorkDurationPrefIndex] = workDuration
 	intList[BreakDurationPrefIndex] = breakDuration
@@ -62,40 +77,50 @@ type PomoConfig struct {
 }
 
 func createPomoConfig(app fyne.App) *PomoConfig {
+	logger := log.WithFields(logrus.Fields{
+		"function": "createPomoConfig",
+	})
+
 	timingConfigs := make(map[string]timingConfig)
 	timingConfigNames := app.Preferences().StringListWithFallback(timingConfigKey, DefaultTimingConfigsNames)
-	log.Debug("createPomoConfig: timingConfigNames: ", timingConfigNames)
+	logger.Debug("timingConfigNames: ", timingConfigNames)
 
 	if len(timingConfigNames) == 0 {
 		timingConfigNames = append(timingConfigNames, DefaultTimingConfigName)
 	}
-
-	// If DefaultTimingConfigName is not in timingConfigNames, add it
-	// if !slices.Contains(timingConfigNames, DefaultTimingConfigName) {
-	// 	timingConfigNames = append(timingConfigNames, DefaultTimingConfigName)
-	// }
 
 	sort.Strings(timingConfigNames)
 
 	for _, configName := range timingConfigNames {
 		timingConfigPref := app.Preferences().IntListWithFallback(configName, timingConfigDefaults)
 
-		// TODO: Handle binding.Set() errors
 		workDuration := binding.NewInt()
 		workDurationPref := getIndexWithFallback(WorkDurationPrefIndex, WorkDurationDefault, timingConfigPref)
-		workDuration.Set(workDurationPref)
+		error := workDuration.Set(workDurationPref)
+		if error != nil {
+			logger.WithError(error).Errorf("Error setting workDurationPref: %d for timingConfig: %s", workDurationPref, configName)
+		}
 
 		breakDuration := binding.NewInt()
 		breakDurationPref := getIndexWithFallback(BreakDurationPrefIndex, BreakDurationDefault, timingConfigPref)
-		breakDuration.Set(breakDurationPref)
+		error = breakDuration.Set(breakDurationPref)
+		if error != nil {
+			logger.WithError(error).Errorf("Error setting breakDurationPref: %d for timingConfig: %s", breakDurationPref, configName)
+		}
 
 		workIterations := binding.NewInt()
 		workIterationsPref := getIndexWithFallback(WorkIterationsPrefIndex, WorkIterationsDefault, timingConfigPref)
-		workIterations.Set(workIterationsPref)
+		error = workIterations.Set(workIterationsPref)
+		if error != nil {
+			logger.WithError(error).Errorf("Error setting workIterationsPref: %d for timingConfig: %s", workIterationsPref, configName)
+		}
 
 		autoStartNext := binding.NewBool()
 		autoStartNextPref := getIndexWithFallback(AutoStartNextPrefIndex, btoi(AutoStartNextDefault), timingConfigPref)
-		autoStartNext.Set(itob(autoStartNextPref))
+		error = autoStartNext.Set(itob(autoStartNextPref))
+		if error != nil {
+			logger.WithError(error).Errorf("Error setting autoStartNextPref: %d for timingConfig: %s", autoStartNextPref, configName)
+		}
 
 		timingConfigs[configName] = timingConfig{
 			WorkDuration:   workDuration,
@@ -126,6 +151,14 @@ func (config *PomoConfig) NewTimingConfig(configName string) {
 	timingConfig := newDefaultTimingConfig()
 
 	config.TimingConfigs[configName] = timingConfig
+}
+
+func (config *PomoConfig) DeleteTimingConfig(configName string) {
+	_, ok := config.TimingConfigs[configName]
+	if ok {
+		delete(config.TimingConfigs, configName)
+		config.fyneApp.Preferences().RemoveValue(configName)
+	}
 }
 
 type PomodoroTimer struct {
