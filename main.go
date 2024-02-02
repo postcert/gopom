@@ -17,9 +17,7 @@ func main() {
 
 	pomoconfig := createPomoConfig(myApp)
 
-	pomodoroTimer := createPomodoroTimer(pomoconfig)
-
-	timerTab := container.NewTabItem("Timer", pomodoroTab(pomodoroTimer))
+	timerTab := container.NewTabItem("Timer", pomodoroTab(pomoconfig))
 	settingsTab := container.NewTabItem("Settings", settingsTab(pomoconfig))
 	tabs := container.NewAppTabs(
 		timerTab,

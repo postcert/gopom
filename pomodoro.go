@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"sort"
 	"time"
 
@@ -10,17 +9,16 @@ import (
 	"golang.org/x/exp/maps"
 
 	"github.com/sirupsen/logrus"
-	log "github.com/sirupsen/logrus"
 )
 
-type timingConfig struct {
+type TimingConfig struct {
 	WorkDuration   binding.Int
 	BreakDuration  binding.Int
 	WorkIterations binding.Int
 	AutoStartNext  binding.Bool
 }
 
-func newDefaultTimingConfig() timingConfig {
+func newDefaultTimingConfig() TimingConfig {
 	workDuration := binding.NewInt()
 	workDuration.Set(WorkDurationDefault)
 	breakDuration := binding.NewInt()
@@ -30,7 +28,7 @@ func newDefaultTimingConfig() timingConfig {
 	autoStartNext := binding.NewBool()
 	autoStartNext.Set(AutoStartNextDefault)
 
-	return timingConfig{
+	return TimingConfig{
 		WorkDuration:   workDuration,
 		BreakDuration:  breakDuration,
 		WorkIterations: workIterations,
@@ -38,26 +36,26 @@ func newDefaultTimingConfig() timingConfig {
 	}
 }
 
-func (config timingConfig) intList() []int {
+func (config TimingConfig) intList() []int {
 	intList := make([]int, PrefMappingCount)
 	workDuration, error := config.WorkDuration.Get()
 	if error != nil {
-		log.WithError(error).Errorf("Failed to query bound workDuration")
+		logrus.WithError(error).Errorf("Failed to query bound workDuration")
 	}
 
 	breakDuration, error := config.BreakDuration.Get()
 	if error != nil {
-		log.WithError(error).Errorf("Failed to query bound breakDuration")
+		logrus.WithError(error).Errorf("Failed to query bound breakDuration")
 	}
 
 	workIterations, error := config.WorkIterations.Get()
 	if error != nil {
-		log.WithError(error).Errorf("Failed to query bound workIterations")
+		logrus.WithError(error).Errorf("Failed to query bound workIterations")
 	}
 
 	autostartNext, error := config.AutoStartNext.Get()
 	if error != nil {
-		log.WithError(error).Errorf("Failed to query bound autostartNext value")
+		logrus.WithError(error).Errorf("Failed to query bound autostartNext value")
 	}
 
 	intList[WorkDurationPrefIndex] = workDuration
@@ -71,17 +69,18 @@ func (config timingConfig) intList() []int {
 var timingConfigDefaults = []int{WorkIterationsDefault, WorkDurationDefault, BreakDurationDefault, btoi(AutoStartNextDefault)}
 
 type PomoConfig struct {
-	TimingConfigs map[string]timingConfig
+	TimingConfigs  map[string]TimingConfig
+	SelectedConfig string
+	Timer          *PomodoroTimer
 
 	fyneApp fyne.App
 }
 
 func createPomoConfig(app fyne.App) *PomoConfig {
-	logger := log.WithFields(logrus.Fields{
+	logger := logrus.WithFields(logrus.Fields{
 		"function": "createPomoConfig",
 	})
 
-	timingConfigs := make(map[string]timingConfig)
 	timingConfigNames := app.Preferences().StringListWithFallback(timingConfigKey, DefaultTimingConfigsNames)
 	logger.Debug("timingConfigNames: ", timingConfigNames)
 
@@ -90,6 +89,27 @@ func createPomoConfig(app fyne.App) *PomoConfig {
 	}
 
 	sort.Strings(timingConfigNames)
+
+	timingConfigs := LoadTimingConfigPreferences(app, timingConfigNames)
+	previousTimingConfigName := LoadPreviousTimingConfigName(app, timingConfigNames)
+	previousTimingConfig := LoadTimingConfig(previousTimingConfigName, timingConfigNames, timingConfigs)
+
+	timer := createPomodoroTimer(previousTimingConfig)
+
+	return &PomoConfig{
+		TimingConfigs: timingConfigs,
+		Timer:         timer,
+
+		fyneApp: app,
+	}
+}
+
+func LoadTimingConfigPreferences(app fyne.App, timingConfigNames []string) map[string]TimingConfig {
+	logger := logrus.WithFields(logrus.Fields{
+		"function": "LoadTimingConfigPreferences",
+	})
+
+	timingConfigs := make(map[string]TimingConfig)
 
 	for _, configName := range timingConfigNames {
 		timingConfigPref := app.Preferences().IntListWithFallback(configName, timingConfigDefaults)
@@ -122,7 +142,7 @@ func createPomoConfig(app fyne.App) *PomoConfig {
 			logger.WithError(error).Errorf("Error setting autoStartNextPref: %d for timingConfig: %s", autoStartNextPref, configName)
 		}
 
-		timingConfigs[configName] = timingConfig{
+		timingConfigs[configName] = TimingConfig{
 			WorkDuration:   workDuration,
 			BreakDuration:  breakDuration,
 			WorkIterations: workIterations,
@@ -130,11 +150,26 @@ func createPomoConfig(app fyne.App) *PomoConfig {
 		}
 	}
 
-	return &PomoConfig{
-		TimingConfigs: timingConfigs,
+	return timingConfigs
+}
 
-		fyneApp: app,
+func LoadPreviousTimingConfigName(app fyne.App, timingConfigNames []string) string {
+	fallbackConfigName := timingConfigNames[0]
+	previousConfig := app.Preferences().StringWithFallback(prevTimingConfigKey, fallbackConfigName)
+
+	return previousConfig
+}
+
+func LoadTimingConfig(requestedConfig string, timingConfigNames []string, timingConfigs map[string]TimingConfig) *TimingConfig {
+	fallbackConfigName := timingConfigNames[0]
+	timingConfig, ok := timingConfigs[requestedConfig]
+	if !ok {
+		// Default to first timingConfigName if previousTimingConfig is not found
+		timingConfig = timingConfigs[fallbackConfigName]
+		logrus.Errorf("LoadTimingConfig: loading requestedConfig: %s failed, fallbackConfigName: %s", requestedConfig, fallbackConfigName)
 	}
+
+	return &timingConfig
 }
 
 func (config *PomoConfig) Save() {
@@ -143,7 +178,7 @@ func (config *PomoConfig) Save() {
 	}
 
 	timingConfigNames := maps.Keys(config.TimingConfigs)
-	log.Debug("PomoConfig.Save: timingConfigNames: ", timingConfigNames)
+	logrus.Debug("PomoConfig.Save: timingConfigNames: ", timingConfigNames)
 	config.fyneApp.Preferences().SetStringList(timingConfigKey, timingConfigNames)
 }
 
@@ -172,24 +207,23 @@ type PomodoroTimer struct {
 	workDurationInt  int
 	breakDurationInt int
 
-	config *PomoConfig
-	Timer  *time.Timer
+	Timer *time.Timer
 }
 
-func createPomodoroTimer(config *PomoConfig) *PomodoroTimer {
-	workDurationBinding := binding.IntToString(config.TimingConfigs[DefaultTimingConfigName].WorkDuration)
-	breakDurationBinding := binding.IntToString(config.TimingConfigs[DefaultTimingConfigName].BreakDuration)
-	workIterationsBinding := binding.IntToString(config.TimingConfigs[DefaultTimingConfigName].WorkIterations)
+func createPomodoroTimer(timingConfig *TimingConfig) *PomodoroTimer {
+	workDurationBinding := binding.IntToString(timingConfig.WorkDuration)
+	breakDurationBinding := binding.IntToString(timingConfig.BreakDuration)
+	workIterationsBinding := binding.IntToString(timingConfig.WorkIterations)
 
 	return &PomodoroTimer{
 		workDurationBinding:   workDurationBinding,
 		breakDurationBinding:  breakDurationBinding,
 		workIterationsBinding: workIterationsBinding,
-
-		config: config,
 	}
 }
 
-func (pomodoroTimer *PomodoroTimer) save() {
-	fmt.Println("pomodoroTimer.save")
+func (timer *PomodoroTimer) UpdateConfig(timingConfig *TimingConfig) {
+	timer.workDurationBinding = binding.IntToString(timingConfig.WorkDuration)
+	timer.breakDurationBinding = binding.IntToString(timingConfig.BreakDuration)
+	timer.workIterationsBinding = binding.IntToString(timingConfig.WorkIterations)
 }

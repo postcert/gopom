@@ -15,7 +15,10 @@ const (
 	AutoStartNextDefault  = true
 )
 
-const timingConfigKey = "timingConfigs"
+const (
+	timingConfigKey     = "timingConfigs"
+	prevTimingConfigKey = "prevTimingConfig"
+)
 
 const DefaultTimingConfigName = "Default"
 

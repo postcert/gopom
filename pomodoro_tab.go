@@ -11,8 +11,8 @@ import (
 
 const pomodoroDuration = 25 * time.Minute
 
-func pomodoroTab(pomodoroTimer *PomodoroTimer) *fyne.Container {
-	timerLabel := widget.NewLabel(fmt.Sprintf("%s:00", pomodoroTimer.workDuration))
+func pomodoroTab(pomoconfig *PomoConfig) *fyne.Container {
+	timerLabel := widget.NewLabel(fmt.Sprintf("%s:00", pomoconfig.Timer.workDuration))
 	progressBar := widget.NewProgressBar()
 	startButton := widget.NewButton("Start", nil)
 	stopButton := widget.NewButton("Stop", nil)

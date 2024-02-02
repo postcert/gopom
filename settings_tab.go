@@ -27,7 +27,6 @@ func settingsTab(pomoConfig *PomoConfig) *fyne.Container {
 		newTimingConfigContainer.Hide()
 	}
 
-	// newTimingConfigContainer := container.NewHBox(newTimingConfigSaveButton, newTimingConfigEntryContainer)
 	newTimingConfigContainer.Hide()
 
 	timingConfigSelectionNewButton := widget.NewButton("New", nil)
