@@ -11,6 +11,7 @@ import (
 
 const pomodoroDuration = 25 * time.Minute
 
+// TODO: Use Binding listeners to update this page
 func pomodoroTab(pomoconfig *PomoConfig) *fyne.Container {
 	timerLabel := widget.NewLabel(fmt.Sprintf("%s:00", pomoconfig.Timer.workDuration))
 	progressBar := widget.NewProgressBar()

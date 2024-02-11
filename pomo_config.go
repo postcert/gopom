@@ -2,71 +2,12 @@ package main
 
 import (
 	"sort"
-	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/data/binding"
-	"golang.org/x/exp/maps"
-
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/maps"
 )
-
-type TimingConfig struct {
-	WorkDuration   binding.Int
-	BreakDuration  binding.Int
-	WorkIterations binding.Int
-	AutoStartNext  binding.Bool
-}
-
-func newDefaultTimingConfig() TimingConfig {
-	workDuration := binding.NewInt()
-	workDuration.Set(WorkDurationDefault)
-	breakDuration := binding.NewInt()
-	breakDuration.Set(BreakDurationDefault)
-	workIterations := binding.NewInt()
-	workIterations.Set(WorkIterationsDefault)
-	autoStartNext := binding.NewBool()
-	autoStartNext.Set(AutoStartNextDefault)
-
-	return TimingConfig{
-		WorkDuration:   workDuration,
-		BreakDuration:  breakDuration,
-		WorkIterations: workIterations,
-		AutoStartNext:  autoStartNext,
-	}
-}
-
-func (config TimingConfig) intList() []int {
-	intList := make([]int, PrefMappingCount)
-	workDuration, error := config.WorkDuration.Get()
-	if error != nil {
-		logrus.WithError(error).Errorf("Failed to query bound workDuration")
-	}
-
-	breakDuration, error := config.BreakDuration.Get()
-	if error != nil {
-		logrus.WithError(error).Errorf("Failed to query bound breakDuration")
-	}
-
-	workIterations, error := config.WorkIterations.Get()
-	if error != nil {
-		logrus.WithError(error).Errorf("Failed to query bound workIterations")
-	}
-
-	autostartNext, error := config.AutoStartNext.Get()
-	if error != nil {
-		logrus.WithError(error).Errorf("Failed to query bound autostartNext value")
-	}
-
-	intList[WorkDurationPrefIndex] = workDuration
-	intList[BreakDurationPrefIndex] = breakDuration
-	intList[WorkIterationsPrefIndex] = workIterations
-	intList[AutoStartNextPrefIndex] = btoi(autostartNext)
-
-	return intList
-}
-
-var timingConfigDefaults = []int{WorkIterationsDefault, WorkDurationDefault, BreakDurationDefault, btoi(AutoStartNextDefault)}
 
 type PomoConfig struct {
 	TimingConfigs  map[string]TimingConfig
@@ -194,36 +135,4 @@ func (config *PomoConfig) DeleteTimingConfig(configName string) {
 		delete(config.TimingConfigs, configName)
 		config.fyneApp.Preferences().RemoveValue(configName)
 	}
-}
-
-type PomodoroTimer struct {
-	workDurationBinding   binding.String
-	breakDurationBinding  binding.String
-	workIterationsBinding binding.String
-
-	workDuration  binding.String
-	breakDuration binding.String
-
-	workDurationInt  int
-	breakDurationInt int
-
-	Timer *time.Timer
-}
-
-func createPomodoroTimer(timingConfig *TimingConfig) *PomodoroTimer {
-	workDurationBinding := binding.IntToString(timingConfig.WorkDuration)
-	breakDurationBinding := binding.IntToString(timingConfig.BreakDuration)
-	workIterationsBinding := binding.IntToString(timingConfig.WorkIterations)
-
-	return &PomodoroTimer{
-		workDurationBinding:   workDurationBinding,
-		breakDurationBinding:  breakDurationBinding,
-		workIterationsBinding: workIterationsBinding,
-	}
-}
-
-func (timer *PomodoroTimer) UpdateConfig(timingConfig *TimingConfig) {
-	timer.workDurationBinding = binding.IntToString(timingConfig.WorkDuration)
-	timer.breakDurationBinding = binding.IntToString(timingConfig.BreakDuration)
-	timer.workIterationsBinding = binding.IntToString(timingConfig.WorkIterations)
 }

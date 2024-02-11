@@ -22,4 +22,7 @@ const (
 
 const DefaultTimingConfigName = "Default"
 
-var DefaultTimingConfigsNames = []string{DefaultTimingConfigName}
+var (
+	DefaultTimingConfigsNames = []string{DefaultTimingConfigName}
+	timingConfigDefaults      = []int{WorkIterationsDefault, WorkDurationDefault, BreakDurationDefault, btoi(AutoStartNextDefault)}
+)

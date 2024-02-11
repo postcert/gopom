@@ -37,10 +37,9 @@ func settingsTab(pomoConfig *PomoConfig) *fyne.Container {
 	timingConfigSelectionDeleteButton.OnTapped = func() {
 		prevSelection := timingConfigSelection.Selected
 		if prevSelection != DefaultTimingConfigName {
-			timingConfigSelection.SetSelected(DefaultTimingConfigName)
 			pomoConfig.DeleteTimingConfig(prevSelection)
 			timingConfigSelection.SetOptions(maps.Keys(pomoConfig.TimingConfigs))
-			timingConfigSelection.Refresh()
+			timingConfigSelection.SetSelected(DefaultTimingConfigName)
 		}
 	}
 	timingConfigButtonsContainer := container.NewHBox(timingConfigSelectionNewButton, timingConfigSelectionDeleteButton)
