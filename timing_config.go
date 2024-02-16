@@ -7,10 +7,11 @@ import (
 )
 
 type TimingConfig struct {
-	WorkDuration   binding.Int
-	BreakDuration  binding.Int
-	WorkIterations binding.Int
-	AutoStartNext  binding.Bool
+	WorkDuration      binding.Int
+	BreakDuration     binding.Int
+	LongBreakDuration binding.Int
+	WorkIterations    binding.Int
+	AutoStartNext     binding.Bool
 }
 
 func newDefaultTimingConfig() TimingConfig {
@@ -18,16 +19,19 @@ func newDefaultTimingConfig() TimingConfig {
 	workDuration.Set(WorkDurationDefault)
 	breakDuration := binding.NewInt()
 	breakDuration.Set(BreakDurationDefault)
+	longBreakDuration := binding.NewInt()
+	longBreakDuration.Set(LongBreakDurationDefault)
 	workIterations := binding.NewInt()
 	workIterations.Set(WorkIterationsDefault)
 	autoStartNext := binding.NewBool()
 	autoStartNext.Set(AutoStartNextDefault)
 
 	return TimingConfig{
-		WorkDuration:   workDuration,
-		BreakDuration:  breakDuration,
-		WorkIterations: workIterations,
-		AutoStartNext:  autoStartNext,
+		WorkDuration:      workDuration,
+		BreakDuration:     breakDuration,
+		LongBreakDuration: longBreakDuration,
+		WorkIterations:    workIterations,
+		AutoStartNext:     autoStartNext,
 	}
 }
 
@@ -43,6 +47,11 @@ func (config TimingConfig) intList() []int {
 		logrus.WithError(error).Errorf("Failed to query bound breakDuration")
 	}
 
+	longBreakDuration, error := config.LongBreakDuration.Get()
+	if error != nil {
+		logrus.WithError(error).Errorf("Failed to query bound longBreakDuration")
+	}
+
 	workIterations, error := config.WorkIterations.Get()
 	if error != nil {
 		logrus.WithError(error).Errorf("Failed to query bound workIterations")
@@ -55,6 +64,7 @@ func (config TimingConfig) intList() []int {
 
 	intList[WorkDurationPrefIndex] = workDuration
 	intList[BreakDurationPrefIndex] = breakDuration
+	intList[LongBreakDurationPrefIndex] = longBreakDuration
 	intList[WorkIterationsPrefIndex] = workIterations
 	intList[AutoStartNextPrefIndex] = btoi(autostartNext)
 

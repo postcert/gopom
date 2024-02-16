@@ -4,15 +4,17 @@ const (
 	WorkIterationsPrefIndex = iota
 	WorkDurationPrefIndex
 	BreakDurationPrefIndex
+	LongBreakDurationPrefIndex
 	AutoStartNextPrefIndex
 	PrefMappingCount
 )
 
 const (
-	WorkIterationsDefault = 4
-	WorkDurationDefault   = 25
-	BreakDurationDefault  = 5
-	AutoStartNextDefault  = true
+	WorkIterationsDefault    = 4
+	WorkDurationDefault      = 25
+	BreakDurationDefault     = 5
+	LongBreakDurationDefault = 15
+	AutoStartNextDefault     = true
 )
 
 const (
@@ -24,5 +26,5 @@ const DefaultTimingConfigName = "Default"
 
 var (
 	DefaultTimingConfigsNames = []string{DefaultTimingConfigName}
-	timingConfigDefaults      = []int{WorkIterationsDefault, WorkDurationDefault, BreakDurationDefault, btoi(AutoStartNextDefault)}
+	timingConfigDefaults      = []int{WorkIterationsDefault, WorkDurationDefault, BreakDurationDefault, LongBreakDurationDefault, btoi(AutoStartNextDefault)}
 )

@@ -69,6 +69,13 @@ func LoadTimingConfigPreferences(app fyne.App, timingConfigNames []string) map[s
 			logger.WithError(error).Errorf("Error setting breakDurationPref: %d for timingConfig: %s", breakDurationPref, configName)
 		}
 
+		longBreakDuration := binding.NewInt()
+		longBreakDurationPref := getIndexWithFallback(LongBreakDurationPrefIndex, LongBreakDurationDefault, timingConfigPref)
+		error = longBreakDuration.Set(longBreakDurationPref)
+		if error != nil {
+			logger.WithError(error).Errorf("Error setting longBreakDurationPref: %d for timingConfig: %s", longBreakDurationPref, configName)
+		}
+
 		workIterations := binding.NewInt()
 		workIterationsPref := getIndexWithFallback(WorkIterationsPrefIndex, WorkIterationsDefault, timingConfigPref)
 		error = workIterations.Set(workIterationsPref)
@@ -84,10 +91,11 @@ func LoadTimingConfigPreferences(app fyne.App, timingConfigNames []string) map[s
 		}
 
 		timingConfigs[configName] = TimingConfig{
-			WorkDuration:   workDuration,
-			BreakDuration:  breakDuration,
-			WorkIterations: workIterations,
-			AutoStartNext:  autoStartNext,
+			WorkDuration:      workDuration,
+			BreakDuration:     breakDuration,
+			LongBreakDuration: longBreakDuration,
+			WorkIterations:    workIterations,
+			AutoStartNext:     autoStartNext,
 		}
 	}
 

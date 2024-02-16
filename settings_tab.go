@@ -77,6 +77,7 @@ func createSettingsForm(pomoConfig *PomoConfig, timingConfigName string) *widget
 	return widget.NewForm(
 		widget.NewFormItem("Work Duration", widget.NewEntryWithData(binding.IntToString(pomoConfig.TimingConfigs[timingConfigName].WorkDuration))),
 		widget.NewFormItem("Break Duration", widget.NewEntryWithData(binding.IntToString(pomoConfig.TimingConfigs[timingConfigName].BreakDuration))),
+		widget.NewFormItem("Long Break Duration", widget.NewEntryWithData(binding.IntToString(pomoConfig.TimingConfigs[timingConfigName].LongBreakDuration))),
 		widget.NewFormItem("Work Iterations", widget.NewEntryWithData(binding.IntToString(pomoConfig.TimingConfigs[timingConfigName].WorkIterations))),
 		widget.NewFormItem("Auto Start Next", widget.NewCheckWithData("", pomoConfig.TimingConfigs[timingConfigName].AutoStartNext)),
 	)

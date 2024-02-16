@@ -23,7 +23,7 @@ func main() {
 		timerTab,
 		settingsTab,
 	)
-	tabs.Select(settingsTab)
+	tabs.Select(timerTab)
 
 	myWindow.SetContent(tabs)
 	myWindow.Resize(fyne.NewSize(300, 200))
