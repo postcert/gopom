@@ -8,14 +8,17 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+type TimerState int
+type TimerStatus int
+
 const (
-	StateWork = iota
+	StateWork TimerState = iota
 	StateBreak
 	StateLongBreak
 )
 
 const (
-	StatusStopped = iota
+	StatusStopped TimerStatus = iota
 	StatusPaused
 	StatusRunning
 )
@@ -23,19 +26,29 @@ const (
 type PomodoroTimer struct {
 	Config *TimingConfig
 
-	State         int
-	Duration      *time.Duration
-	TotalDuration time.Duration
-	Timer         *time.Timer
-	Ticker        *time.Ticker
+	State  TimerState
+	Status TimerStatus
+
+	Duration       *time.Duration
+	TotalDuration  time.Duration
+	WorkIterations int
+	Timer          *time.Timer
+	Ticker         *time.Ticker
 
 	DurationString binding.String
 	ProgressFloat  binding.Float
+
+	EventChannel chan TimerEvent
 }
 
-func createPomodoroTimer(timingConfig *TimingConfig) *PomodoroTimer {
+func createPomodoroTimer(timingConfig *TimingConfig, eventChannel chan TimerEvent) *PomodoroTimer {
 	timer := &PomodoroTimer{
 		Config: timingConfig,
+
+		State:  StateWork,
+		Status: StatusStopped,
+
+		EventChannel: eventChannel,
 	}
 	timer.Init()
 
@@ -55,6 +68,15 @@ func (timer *PomodoroTimer) Stop() {
 	}
 }
 
+func intToDuration(i int) time.Duration {
+	if debug {
+		// High Speed Testing
+		return time.Duration(i) * time.Second
+	} else {
+		return time.Duration(i) * time.Minute
+	}
+}
+
 func (timer *PomodoroTimer) Reset() {
 	timer.Stop()
 
@@ -64,7 +86,7 @@ func (timer *PomodoroTimer) Reset() {
 		if error != nil {
 			logrus.WithError(error).Errorf("Failed to query bound workDuration")
 		}
-		duration := time.Duration(workDuration) * time.Minute
+		duration := intToDuration(workDuration)
 		timer.TotalDuration = duration
 		timer.Duration = &duration
 	case StateBreak:
@@ -72,7 +94,7 @@ func (timer *PomodoroTimer) Reset() {
 		if error != nil {
 			logrus.WithError(error).Errorf("Failed to query bound breakDuration")
 		}
-		duration := time.Duration(breakDuration) * time.Minute
+		duration := intToDuration(breakDuration)
 		timer.TotalDuration = duration
 		timer.Duration = &duration
 	case StateLongBreak:
@@ -80,7 +102,7 @@ func (timer *PomodoroTimer) Reset() {
 		if error != nil {
 			logrus.WithError(error).Errorf("Failed to query bound longBreakDuration")
 		}
-		duration := time.Duration(longBreakDuration) * time.Minute
+		duration := intToDuration(longBreakDuration)
 		timer.TotalDuration = duration
 		timer.Duration = &duration
 	}
@@ -94,6 +116,39 @@ func (timer *PomodoroTimer) Reset() {
 		timer.ProgressFloat = binding.NewFloat()
 	}
 	timer.ProgressFloat.Set(0)
+
+	if timer.WorkIterations == 0 {
+		workIterations, error := timer.Config.WorkIterations.Get()
+		if error != nil {
+			logrus.WithError(error).Errorf("Failed to query bound workIterations")
+		}
+		timer.WorkIterations = workIterations
+	}
+}
+
+func (timer *PomodoroTimer) TransitionState() {
+	switch timer.State {
+	case StateWork:
+		timer.WorkIterations--
+
+		if timer.WorkIterations == 0 {
+			logrus.WithField("workIterations", timer.WorkIterations).Debug("TransitionState: StateWork: Transitioning to StateLongBreak")
+			timer.State = StateLongBreak
+			// TODO: Reset work iterations
+		} else {
+			logrus.WithField("workIterations", timer.WorkIterations).Debug("TransitionState: StateWork: Transitioning to StateBreak")
+			timer.State = StateBreak
+		}
+
+	case StateBreak:
+		logrus.Debug("TransitionState: StateBreak: Transitioning to StateWork")
+		timer.State = StateWork
+
+	case StateLongBreak:
+		logrus.Debug("TransitionState: StateLongBreak: Transitioning to StateWork")
+		timer.State = StateWork
+	}
+	timer.Reset()
 }
 
 func (timer *PomodoroTimer) UpdateConfig(timingConfig *TimingConfig) {
@@ -122,10 +177,14 @@ func (timer *PomodoroTimer) Start() {
 					"progress": progress,
 				}).Debug("Tick")
 			case <-timer.Timer.C:
-				logrus.Debug("Timer")
+				logrus.Debug("Timer Complete")
 				timer.ProgressFloat.Set(1)
 				timer.DurationString.Set(formatDuration(0 * time.Second))
 				timer.Ticker.Stop()
+				timer.EventChannel <- TimerEvent{
+					Type: TimerCompleteEvent,
+				}
+				timer.TransitionState()
 				return
 			}
 		}

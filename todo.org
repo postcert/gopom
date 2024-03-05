@@ -1,0 +1,53 @@
+* Work
+** Timers
+*** TODO Count down work iterations [3/5]
+decrement $work_iterations after a work iteration ends
+**** DONE Have pomodoroTab call pomoconfig functions that intercept and set up a back control channel
+:LOGBOOK:
+CLOCK: [2024-03-04 Mon 14:57]--[2024-03-04 Mon 15:18] =>  0:21
+CLOCK: [2024-03-04 Mon 13:16]--[2024-03-04 Mon 13:41] =>  0:25
+:END:
+Create a channel for TimerEvent's to be passed back to Config
+**** DONE Transition between TimerStates on clock end
+:LOGBOOK:
+CLOCK: [2024-03-04 Mon 15:21]--[2024-03-04 Mon 15:30] =>  0:09
+:END:
+**** DONE Add work iterations and handle them in Transition state
+:LOGBOOK:
+CLOCK: [2024-03-04 Mon 15:45]--[2024-03-04 Mon 16:05] =>  0:20
+:END:
+- Transition to long break when $work_iterations is 0
+**** TODO CLEANUP: Come up with some new logic for Reset and State Transitioning
+Calling .Reset() is fine for the timer/ticker but does not work well for stateful variables like the work_iterations.
+Just need to pull out the timer.State switch out to a function to be used on start-up and state transitioning
+
+**** TODO Expose new information in the UI
+Expose the:
+- State
+- Status
+- Iteration count
+in the timerTab
+*** TODO Transition from Work timer to Break timer
+When $work_timer finishes, if $work_iterations == 0 go to a long break's config, else regular break.
+** Sound
+*** STRT Add file open dialog
+Can use `dialog.NewFileOpen`??
+I don't want to actually open a file, just capture the URI
+[[https://github.com/npalumbo/keepassui/blob/86927ceb43e6eb3a6b2d80c4ecdb14de215c7e69/internal/ui/navview.go#L58][Example]] code usage for "save" which is probably similar
+[[https://reintech.io/blog/building-desktop-applications-go-fyne][Open and Close simple example]]
+
+Key points:
+- Can I start the navigation in at the binaries location? or a default nearby directory such as `./sounds`
+- Handling cancelling of the dialog
+*** TODO Storage API
+How can I use fyne to open this file, instead of opening some go primitive?
+*** HOLD Play sound on timer end
+:LOGBOOK:
+CLOCK: [2024-03-04 Mon 16:44]--[2024-03-04 Mon 17:09] =>  0:25
+:END:
+Configurable sound based on timer type.
+Also set some decent defaults for each
+*** TODO Add volume settings
+** Notifications
+*** TODO Send off a notification on timer completion
+* Inbox

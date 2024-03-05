@@ -17,16 +17,16 @@ func pomodoroTab(pomoconfig *PomoConfig) *fyne.Container {
 	resetButton := widget.NewButton("Reset", nil)
 
 	startButton.OnTapped = func() {
-		pomoTimer.Start()
+		pomoconfig.StartTimer()
 	}
 
 	stopButton.OnTapped = func() {
-		pomoTimer.Stop()
+		pomoconfig.StopTimer()
 	}
 
 	resetButton.OnTapped = func() {
-		pomoTimer.Stop()
-		pomoTimer.Reset()
+		pomoconfig.StopTimer()
+		pomoconfig.ResetTimer()
 	}
 
 	buttons := container.NewHBox(startButton, stopButton, resetButton)

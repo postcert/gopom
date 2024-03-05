@@ -7,6 +7,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const (
+	debug = true
+)
+
 func init() {
 	log.SetLevel(log.DebugLevel)
 }

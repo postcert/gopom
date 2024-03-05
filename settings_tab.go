@@ -80,5 +80,10 @@ func createSettingsForm(pomoConfig *PomoConfig, timingConfigName string) *widget
 		widget.NewFormItem("Long Break Duration", widget.NewEntryWithData(binding.IntToString(pomoConfig.TimingConfigs[timingConfigName].LongBreakDuration))),
 		widget.NewFormItem("Work Iterations", widget.NewEntryWithData(binding.IntToString(pomoConfig.TimingConfigs[timingConfigName].WorkIterations))),
 		widget.NewFormItem("Auto Start Next", widget.NewCheckWithData("", pomoConfig.TimingConfigs[timingConfigName].AutoStartNext)),
+
+		widget.NewFormItem("Work Finished Sound", widget.NewEntryWithData(pomoConfig.TimingConfigs[timingConfigName].WorkFinishedSound)),
+		widget.NewFormItem("Break Finished Sound", widget.NewEntryWithData(pomoConfig.TimingConfigs[timingConfigName].BreakFinishedSound)),
+		widget.NewFormItem("Play Work Finished Sound", widget.NewCheckWithData("", pomoConfig.TimingConfigs[timingConfigName].PlayWorkFinishedSound)),
+		widget.NewFormItem("Play Break Finished Sound", widget.NewCheckWithData("", pomoConfig.TimingConfigs[timingConfigName].PlayBreakFinishedSound)),
 	)
 }

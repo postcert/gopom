@@ -4,65 +4,87 @@ import (
 	"sort"
 
 	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/data/binding"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/exp/maps"
+	"golang.org/x/exp/slices"
 )
 
 type PomoConfig struct {
 	TimingConfigs  map[string]TimingConfig
-	SelectedConfig string
+	SelectedConfig binding.String
 	Timer          *PomodoroTimer
+	TimerChannel   chan TimerEvent
 
 	fyneApp fyne.App
 }
 
 func createPomoConfig(app fyne.App) *PomoConfig {
-	logger := logrus.WithFields(logrus.Fields{
-		"function": "createPomoConfig",
-	})
+	timingConfigs := getTimingConfigsFromPrefs(app.Preferences())
+	selectedConfigBinding, selectedConfig := getSelectedTimingConfigFromPrefs(app.Preferences(), maps.Keys(timingConfigs))
 
-	timingConfigNames := app.Preferences().StringListWithFallback(timingConfigKey, DefaultTimingConfigsNames)
-	logger.Debug("timingConfigNames: ", timingConfigNames)
+	selectedTimingConfig := LoadTimingConfig(selectedConfig, timingConfigs)
 
-	if len(timingConfigNames) == 0 {
-		timingConfigNames = append(timingConfigNames, DefaultTimingConfigName)
-	}
+	timerChannel := make(chan TimerEvent)
+	timer := createPomodoroTimer(selectedTimingConfig, timerChannel)
 
-	sort.Strings(timingConfigNames)
-
-	timingConfigs := LoadTimingConfigPreferences(app, timingConfigNames)
-	previousTimingConfigName := LoadPreviousTimingConfigName(app, timingConfigNames)
-	previousTimingConfig := LoadTimingConfig(previousTimingConfigName, timingConfigNames, timingConfigs)
-
-	timer := createPomodoroTimer(previousTimingConfig)
-
-	return &PomoConfig{
-		TimingConfigs: timingConfigs,
-		Timer:         timer,
+	config := &PomoConfig{
+		TimingConfigs:  timingConfigs,
+		SelectedConfig: selectedConfigBinding,
+		TimerChannel:   timerChannel,
+		Timer:          timer,
 
 		fyneApp: app,
 	}
+
+	config.HandleTimerEvents()
+
+	return config
 }
 
-func LoadTimingConfigPreferences(app fyne.App, timingConfigNames []string) map[string]TimingConfig {
-	timingConfigs := make(map[string]TimingConfig)
+func (config *PomoConfig) HandleTimerEvents() {
+	go func() {
+		for event := range config.TimerChannel {
+			switch event.Type {
+			case TimerCompleteEvent:
+				logrus.Debug("PomoConfig.HandleTimerEvents: TimerCompleteEvent")
+			case TimerPauseEvent:
+				logrus.Debug("PomoConfig.HandleTimerEvents: TimerPauseEvent")
+			case TimerStopEvent:
+				logrus.Debug("PomoConfig.HandleTimerEvents: TimerStopEvent")
+			}
+		}
+	}()
+}
 
-	for _, configName := range timingConfigNames {
-		timingConfigs[configName] = newTimingConfigFromPrefs(configName, app.Preferences())
+func getTimingConfigsFromPrefs(preferences fyne.Preferences) map[string]TimingConfig {
+	timingConfigNames := preferences.StringListWithFallback(timingConfigKey, DefaultTimingConfigsNames)
+	if len(timingConfigNames) == 0 {
+		timingConfigNames = append(timingConfigNames, DefaultTimingConfigName)
 	}
+	sort.Strings(timingConfigNames)
 
+	timingConfigs := make(map[string]TimingConfig)
+	for _, configName := range timingConfigNames {
+		timingConfigs[configName] = newTimingConfigFromPrefs(configName, preferences)
+	}
 	return timingConfigs
 }
 
-func LoadPreviousTimingConfigName(app fyne.App, timingConfigNames []string) string {
-	fallbackConfigName := timingConfigNames[0]
-	previousConfig := app.Preferences().StringWithFallback(prevTimingConfigKey, fallbackConfigName)
+func getSelectedTimingConfigFromPrefs(preferences fyne.Preferences, timingConfigNames []string) (binding.String, string) {
+	selectedConfig := binding.BindPreferenceString(selectedTimingConfigKey, preferences)
+	selectedConfigStr, err := selectedConfig.Get()
+	if err != nil || selectedConfigStr == "" || !slices.Contains(timingConfigNames, selectedConfigStr) {
+		selectedConfig.Set(timingConfigNames[0])
+		selectedConfigStr = timingConfigNames[0]
+	}
 
-	return previousConfig
+	return selectedConfig, selectedConfigStr
 }
 
-func LoadTimingConfig(requestedConfig string, timingConfigNames []string, timingConfigs map[string]TimingConfig) *TimingConfig {
-	fallbackConfigName := timingConfigNames[0]
+func LoadTimingConfig(requestedConfig string, timingConfigs map[string]TimingConfig) *TimingConfig {
+	fallbackConfigName := maps.Keys(timingConfigs)[0]
+
 	timingConfig, ok := timingConfigs[requestedConfig]
 	if !ok {
 		// Default to first timingConfigName if previousTimingConfig is not found
@@ -97,4 +119,16 @@ func (config *PomoConfig) DeleteTimingConfig(configName string) {
 		delete(config.TimingConfigs, configName)
 		config.fyneApp.Preferences().RemoveValue(configName)
 	}
+}
+
+func (config *PomoConfig) StartTimer() {
+	config.Timer.Start()
+}
+
+func (config *PomoConfig) StopTimer() {
+	config.Timer.Stop()
+}
+
+func (config *PomoConfig) ResetTimer() {
+	config.Timer.Reset()
 }

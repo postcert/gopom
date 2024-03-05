@@ -6,6 +6,7 @@ import (
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/data/binding"
+	"fyne.io/fyne/v2/dialog"
 	"github.com/sirupsen/logrus"
 )
 
@@ -15,6 +16,11 @@ type TimingConfig struct {
 	LongBreakDuration binding.Int
 	WorkIterations    binding.Int
 	AutoStartNext     binding.Bool
+
+	WorkFinishedSound      binding.String
+	BreakFinishedSound     binding.String
+	PlayWorkFinishedSound  binding.Bool
+	PlayBreakFinishedSound binding.Bool
 }
 
 var timingConfigDefaults = map[string]interface{}{
@@ -23,31 +29,27 @@ var timingConfigDefaults = map[string]interface{}{
 	"LongBreakDuration": LongBreakDurationDefault,
 	"WorkIterations":    WorkIterationsDefault,
 	"AutoStartNext":     AutoStartNextDefault,
+
+	"WorkFinishedSound":      WorkFinishedSoundDefault,
+	"BreakFinishedSound":     BreakFinishedSoundDefault,
+	"PlayWorkFinishedSound":  PlayWorkFinishedSoundDefault,
+	"PlayBreakFinishedSound": PlayBreakFinishedSoundDefault,
 }
 
 func newTimingConfigFromPrefs(configName string, preferences fyne.Preferences) TimingConfig {
-	// workDurationPrefKey := fmt.Sprintf(WorkDurationKey, configName)
-	// workDuration := binding.BindPreferenceInt(workDurationPrefKey, preferences)
-	//
-	// breakDurationPrefKey := fmt.Sprintf(BreakDurationKey, configName)
-	// breakDuration := binding.BindPreferenceInt(breakDurationPrefKey, preferences)
-	//
-	// longBreakDurationPrefKey := fmt.Sprintf(LongBreakDurationKey, configName)
-	// longBreakDuration := binding.BindPreferenceInt(longBreakDurationPrefKey, preferences)
-	//
-	// workIterationsPrefKey := fmt.Sprintf(WorkIterationsKey, configName)
-	// workIterations := binding.BindPreferenceInt(workIterationsPrefKey, preferences)
-	//
-	// autoStartNextPrefKey := fmt.Sprintf(AutoStartNextKey, configName)
-	// autoStartNext := binding.BindPreferenceBool(autoStartNextPrefKey, preferences)
-
 	timingConfig := TimingConfig{}
 
+	// Not the cleanest use of reflection due to the binding.* being Interfaces
+	// But it hopefully avoids bugs in boilerplate code
 	tConfigValue := reflect.ValueOf(&timingConfig).Elem()
 	tConfigType := tConfigValue.Type()
 
+	// Getting the interface types because "typeOf(binding.Int)" was failing
+	// Fyne Preferences only supports these 4 types so at least all bases are covered
 	intType := reflect.TypeOf((*binding.Int)(nil)).Elem()
 	boolType := reflect.TypeOf((*binding.Bool)(nil)).Elem()
+	stringType := reflect.TypeOf((*binding.String)(nil)).Elem()
+	floatType := reflect.TypeOf((*binding.Float)(nil)).Elem()
 
 	for i := 0; i < tConfigValue.NumField(); i++ {
 		field := tConfigValue.Field(i)
@@ -66,8 +68,18 @@ func newTimingConfigFromPrefs(configName string, preferences fyne.Preferences) T
 				continue
 			}
 			field.Set(reflect.ValueOf(binding.BindPreferenceBool(prefKey, preferences)))
+		} else if field.Type().Implements(stringType) {
+			if !field.CanSet() {
+				continue
+			}
+			field.Set(reflect.ValueOf(binding.BindPreferenceString(prefKey, preferences)))
+		} else if field.Type().Implements(floatType) {
+			if !field.CanSet() {
+				continue
+			}
+			field.Set(reflect.ValueOf(binding.BindPreferenceFloat(prefKey, preferences)))
 		} else {
-			logrus.Errorf("Unsupported type: %s", fieldType)
+			logrus.Errorf("Unsupported type when Binding to a preference: %s", fieldType)
 		}
 	}
 
@@ -82,6 +94,11 @@ func newDefaultTimingConfig(configName string, preferences fyne.Preferences) Tim
 	timingConfig.LongBreakDuration.Set(LongBreakDurationDefault)
 	timingConfig.WorkIterations.Set(WorkIterationsDefault)
 	timingConfig.AutoStartNext.Set(AutoStartNextDefault)
+
+	timingConfig.WorkFinishedSound.Set(WorkFinishedSoundDefault)
+	timingConfig.BreakFinishedSound.Set(BreakFinishedSoundDefault)
+	timingConfig.PlayWorkFinishedSound.Set(PlayWorkFinishedSoundDefault)
+	timingConfig.PlayBreakFinishedSound.Set(PlayBreakFinishedSoundDefault)
 
 	return timingConfig
 }
